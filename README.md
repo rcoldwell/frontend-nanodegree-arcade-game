@@ -4,7 +4,7 @@ frontend-nanodegree-arcade-game
 R Coldwell:
 This game supports up/down/left/right control of the main character.
 Hitting a bug moves you back to the starting row.
-
+Getting a gem increases the score by 10.
 
 
 Udacity note:

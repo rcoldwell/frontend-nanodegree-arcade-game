@@ -104,7 +104,7 @@ Player.prototype.update = function (dt) {
 
 //log location of player as it moves on canvas for debugging
 function logPlayerLocation(x, y, row, col) {
-    console.log("x=" + x + ", y=" + y + " ,row=" + row + ", col=" + col);
+    //console.log("x=" + x + ", y=" + y + " ,row=" + row + ", col=" + col);
 }
 
 //check for collision
@@ -115,7 +115,6 @@ Player.prototype.collision = function () {
     for (var i = 0; i < allEnemies.length; i++) {
         if (allEnemies[i].right() > this.left() && allEnemies[i].left() < this.right() && allEnemies[i].currentrow() == this.row) {
             //collision detected
-            //console.log("collision");
             this.y = this.ystart;
             this.row = this.rowstart;
         }
@@ -123,10 +122,11 @@ Player.prototype.collision = function () {
     //check for gem collision
     if (this.row == 0 && gem.col == this.col) {
         //got gem, increase score, move back to start
-        console.log("got gem");
+        score.addpoints(10);
         this.y = this.ystart;
         this.row = this.rowstart;
-        gem.reset();
+        gem.transition = true;
+        gem.transitionstart = Date.now();
     }
 }
 
@@ -158,18 +158,54 @@ var Gem = function () {
     this.col = Math.floor((Math.random() * 4) + 0);
     this.x = (this.col * 101) + 25;
     this.y = 35;
+    this.width = 50;
+    this.height = 80;
+    this.transition = false;
+    this.transitionstart = 0;
+    this.transitionlength = 500;
 }
 
-Gem.prototype.update = function () {}
+Gem.prototype.update = function (dt) {
+    if (this.transition) {
+        if ((Date.now() - this.transitionstart) < this.transitionlength) {
+            this.width -= 1.25;
+            this.height -= 1.75;
+            this.x += .75;
+            this.y += 1.25;
+        } else {
+            this.transition = false;
+            gem.reset();
+        }
+    }
+}
 
 Gem.prototype.reset = function () {
     this.col = Math.floor((Math.random() * 4) + 0);
     this.x = (this.col * 101) + 25;
+    this.width = 50;
+    this.height = 80;
+    this.y = 35;
 }
 
 // Draw the gem on the screen
 Gem.prototype.render = function () {
-    ctx.drawImage(Resources.get(this.sprite), this.x, this.y, 50, 80);
+    ctx.drawImage(Resources.get(this.sprite), this.x, this.y, this.width, this.height);
+}
+
+// Score
+var Score = function () {
+    this.points = 0;
+}
+
+Score.prototype.addpoints = function (points) {
+    this.points += points;
+}
+
+Score.prototype.render = function () {
+    ctx.fillStyle = 'yellow';
+    ctx.font = 'bold 30pt Impact';
+    ctx.textAlign = 'center';
+    ctx.fillText(this.points, 455, 580);
 }
 
 // Now instantiate your objects.
@@ -182,7 +218,8 @@ createEnemies(3);
 var player = new Player();
 
 var gem = new Gem();
-console.log(gem);
+
+var score = new Score();
 
 function createEnemies(count) {
     var rowMax = 3;
@@ -204,7 +241,6 @@ function createEnemies(count) {
         allEnemies.push(new Enemy(x, y, speed, row));
         row++;
     }
-    console.log(allEnemies);
 }
 
 // This listens for key presses and sends the keys to your
