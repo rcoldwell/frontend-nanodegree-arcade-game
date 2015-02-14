@@ -25,19 +25,19 @@ Enemy.prototype.update = function (dt) {
     }
 }
 
-// enemy's left for collision check
+// return the left edge of the enemy object (for collision detection)
 Enemy.prototype.left = function () {
     var left = this.x + 30;
     return left;
 }
 
-// enemy's right for collision check
+// return the right edge of the enemy object (for collision detection)
 Enemy.prototype.right = function () {
     var right = this.x + 70;
     return right;
 }
 
-// enemy's row for collision check
+// return the row of the enemy object (for collision detection)
 Enemy.prototype.currentrow = function () {
     var row = this.row;
     return row;
@@ -51,82 +51,161 @@ Enemy.prototype.render = function () {
 // Now write your own player class
 // This class requires an update(), render() and
 // a handleInput() method.
-var Player = function (x, y, row) {
+var Player = function () {
     this.sprite = 'images/char-boy.png';
-    this.x = x;
-    this.y = y;
-    this.row = row;
-    this.xstart = x;
-    this.ystart = y;
-    this.rowstart = row;
+    this.x = 202;
+    this.y = 404;
+    this.row = 5;
+    this.col = 2;
+    this.xstart = this.x;
+    this.ystart = this.y;
+    this.rowstart = this.row;
 }
 
+//check the direction input and move player
+//keep player on board
+//tiles are 101x83
 Player.prototype.update = function (dt) {
     switch (this.dir) {
     case "left":
         if (this.x > 0) {
             this.x = this.x - 101;
+            this.col--;
         }
-        console.log(this.x + "," + this.y + "," + this.row);
+        logPlayerLocation(this.x, this.y, this.row, this.col);
         break;
     case "right":
         if (this.x < ctx.canvas.width - 200) {
             this.x = this.x + 101;
+            this.col++;
         }
-        console.log(this.x + "," + this.y + "," + this.row);
+        logPlayerLocation(this.x, this.y, this.row, this.col);
         break;
     case "up":
         if (this.y > 10) {
             this.y = this.y - 83;
             this.row--;
         }
-        console.log(this.x + "," + this.y + "," + this.row);
+        logPlayerLocation(this.x, this.y, this.row, this.col);
         break;
     case "down":
         if (this.y < 404) {
             this.y = this.y + 83;
             this.row++;
         }
-        console.log(this.x + "," + this.y + "," + this.row);
+        logPlayerLocation(this.x, this.y, this.row, this.col);
         break;
     default:
-        this.x = this.x;
-        this.y = this.y;
         break;
     }
     this.collision();
     this.dir = "";
 }
 
+//log location of player as it moves on canvas for debugging
+function logPlayerLocation(x, y, row, col) {
+    //console.log("x=" + x + ", y=" + y + " ,row=" + row + ", col=" + col);
+}
+
+//check for collision
+//get the left/right/row of each enemy and compare with the left/right/row of the player
+//if collision detected reset player location
 Player.prototype.collision = function () {
+    //check for enemy collision
     for (var i = 0; i < allEnemies.length; i++) {
         if (allEnemies[i].right() > this.left() && allEnemies[i].left() < this.right() && allEnemies[i].currentrow() == this.row) {
             //collision detected
-            //console.log("collision");
             this.y = this.ystart;
             this.row = this.rowstart;
         }
     }
+    //check for gem collision
+    if (this.row == 0 && gem.col == this.col) {
+        //got gem, increase score, move back to start
+        score.addpoints(10);
+        this.y = this.ystart;
+        this.row = this.rowstart;
+        gem.transition = true;
+        gem.transitionstart = Date.now();
+    }
 }
 
-// player's left value for collision check
+// return the left edge of the player object (for collision detection)
 Player.prototype.left = function () {
     var left = this.x;
     return left;
 }
 
-// player's right value for collision check
+// return the right edge of the player object (for collision detection)
 Player.prototype.right = function () {
     var right = this.x + 70;
     return right;
 }
 
+// Draw the player on the screen
 Player.prototype.render = function () {
     ctx.drawImage(Resources.get(this.sprite), this.x, this.y);
 }
 
+// set direction from keys on event listener
 Player.prototype.handleInput = function (dir) {
     this.dir = dir;
+}
+
+//gem object
+var Gem = function () {
+    this.sprite = 'images/GemGreen.png';
+    this.col = Math.floor((Math.random() * 4) + 0);
+    this.x = (this.col * 101) + 25;
+    this.y = 35;
+    this.width = 50;
+    this.height = 80;
+    this.transition = false;
+    this.transitionstart = 0;
+    this.transitionlength = 500;
+}
+
+Gem.prototype.update = function (dt) {
+    if (this.transition) {
+        if ((Date.now() - this.transitionstart) < this.transitionlength) {
+            this.width -= 1.25;
+            this.height -= 1.75;
+            this.x += .75;
+            this.y += 1.25;
+        } else {
+            this.transition = false;
+            gem.reset();
+        }
+    }
+}
+
+Gem.prototype.reset = function () {
+    this.col = Math.floor((Math.random() * 4) + 0);
+    this.x = (this.col * 101) + 25;
+    this.width = 50;
+    this.height = 80;
+    this.y = 35;
+}
+
+// Draw the gem on the screen
+Gem.prototype.render = function () {
+    ctx.drawImage(Resources.get(this.sprite), this.x, this.y, this.width, this.height);
+}
+
+// Score
+var Score = function () {
+    this.points = 0;
+}
+
+Score.prototype.addpoints = function (points) {
+    this.points += points;
+}
+
+Score.prototype.render = function () {
+    ctx.fillStyle = 'yellow';
+    ctx.font = 'bold 30pt Impact';
+    ctx.textAlign = 'center';
+    ctx.fillText(this.points, 455, 580);
 }
 
 // Now instantiate your objects.
@@ -134,20 +213,35 @@ Player.prototype.handleInput = function (dir) {
 // Place the player object in a variable called player
 
 var allEnemies = [];
-var maxspeed = 200;
-var minspeed = 50;
-var rowstart = 60;
-var rowheight = 83;
-for (i = 0; i < 3; i++) {
-    var x = 0;
-    var y = rowstart + (i * rowheight);
-    var speed = Math.floor(Math.random() * (maxspeed - minspeed)) + minspeed;
-    allEnemies.push(new Enemy(x, y, speed, i + 1));
+createEnemies(3);
+
+var player = new Player();
+
+var gem = new Gem();
+
+var score = new Score();
+
+function createEnemies(count) {
+    var rowMax = 3;
+    var maxSpeed = 200;
+    var minSpeed = 50;
+    var rowStart = 60;
+    var rowHeight = 83;
+    var x = -100,
+        y = 0,
+        row = 1;
+    for (var i = 0; i < count; i++) {
+        //add one enemy for each row then set random row for each one after
+        if (row > rowMax) {
+            row = Math.floor((Math.random() * rowMax) + 1);
+        }
+        y = rowStart + ((row - 1) * rowHeight);
+        //set random speed between minSpeed and maxSpeed
+        var speed = Math.floor(Math.random() * (maxSpeed - minSpeed)) + minSpeed;
+        allEnemies.push(new Enemy(x, y, speed, row));
+        row++;
+    }
 }
-console.log(allEnemies);
-
-var player = new Player(202, 404, 5);
-
 
 // This listens for key presses and sends the keys to your
 // Player.handleInput() method. You don't need to modify this.
